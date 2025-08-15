@@ -45,7 +45,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
     text: '1',
   );
   final TextEditingController _localController = TextEditingController(
-    text: 'Parnaíba',
+    text: '',
   );
   final TextEditingController _dataController = TextEditingController(text: '');
   final TextEditingController _valorHoraController = TextEditingController(
@@ -77,6 +77,8 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
     locale: 'pt_BR',
     symbol: 'R\$',
   );
+
+  final formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -209,7 +211,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
                 ),
                 pw.SizedBox(height: 16),
                 _buildPdfInfoRow('Serviço', _servico, ttf),
-                _buildPdfInfoRow('Duração do Evento', '$_duracao horas', ttf),
+                _buildPdfInfoRow('Duração do Evento', duracaoText(), ttf),
                 _buildPdfInfoRow('Local', _local, ttf),
                 _buildPdfInfoRow('Data', _data, ttf),
                 pw.SizedBox(height: 16),
@@ -291,7 +293,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           _currencyFormat.format(hourlyRate),
           font,
         ),
-        _buildPdfDetailRow('Duração', '$duration horas', font),
+        _buildPdfDetailRow('Duração', duracaoText(), font),
         _buildPdfDetailRow(
           'Subtotal ($serviceName)',
           _currencyFormat.format(subtotal),
@@ -311,7 +313,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
               'Sistema de Som: Equipamento de áudio de alta qualidade para garantir a distribuição sonora adequada no local. Inclui caixas de som, mesa de som e demais acessórios necessários.',
           style: pw.TextStyle(fontSize: 14, font: font),
         ),
-        _buildPdfDetailRow('Duração', '$_duracao horas', font),
+        _buildPdfDetailRow('Duração', duracaoText(), font),
         _buildPdfDetailRow(
           'Subtotal',
           _currencyFormat.format(_subtotalSom),
@@ -359,13 +361,13 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ),
         pw.SizedBox(height: 8),
         _buildPdfDetailRow(
-          'DJ ($_duracao horas)',
+          'DJ (${duracaoText()})',
           _currencyFormat.format(_subtotalDJ),
           font,
         ),
         if (_incluirSom)
           _buildPdfDetailRow(
-            'Som ($_duracao horas)',
+            'Som (${duracaoText()})',
             _currencyFormat.format(_subtotalSom),
             font,
           ),
@@ -472,7 +474,11 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
               _buildInputSection(),
               const SizedBox(height: 32.0),
               ElevatedButton(
-                onPressed: () => _gerarPDF(),
+                onPressed: () {
+                  if (formKey.currentState?.validate() ?? false) {
+                    _gerarPDF();
+                  }
+                },
                 child: Text('Compartilhar'),
               ),
               const SizedBox(height: 32.0),
@@ -490,64 +496,67 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
 
   /// Widget para os campos de entrada de dados.
   Widget _buildInputSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Preencha os dados do orçamento:',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Preencha os dados do orçamento:',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        _buildTextField('Artista', _artista),
-        _buildTextField('Serviço', _servicoController),
-        _buildTextField(
-          'Duração (horas)',
-          _duracaoController,
-          keyboardType: TextInputType.number,
-        ),
-        _buildTextField('Local', _localController),
-        _buildTextField(
-          'Data',
-          _dataController,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            DataInputFormatter(),
-          ],
-        ),
-        _buildTextField(
-          'Valor por hora (R\$)',
-          _valorHoraController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        ),
-        // Switch para incluir o sistema de som
-        SwitchListTile(
-          title: const Text('Incluir Sistema de Som'),
-          value: _incluirSom,
-          onChanged: (bool value) {
-            setState(() {
-              _incluirSom = value;
-              _calcularOrcamento();
-            });
-          },
-        ),
-        // Campo para o valor do som, visível apenas se o switch estiver ativado.
-        if (_incluirSom)
+          const SizedBox(height: 16),
+          _buildTextField('Artista', _artista),
+          _buildTextField('Serviço', _servicoController),
           _buildTextField(
-            'Valor do Som (R\$)',
-            _valorSomController,
+            'Duração (horas)',
+            _duracaoController,
             keyboardType: TextInputType.number,
           ),
-        _buildTextField(
-          'Valor do Desconto (R\$)',
-          _descontoController,
-          keyboardType: TextInputType.number,
-        ),
-      ],
+          _buildTextField('Local', _localController),
+          _buildTextField(
+            'Data',
+            _dataController,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              DataInputFormatter(),
+            ],
+          ),
+          _buildTextField(
+            'Valor por hora (R\$)',
+            _valorHoraController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          // Switch para incluir o sistema de som
+          SwitchListTile(
+            title: const Text('Incluir Sistema de Som'),
+            value: _incluirSom,
+            onChanged: (bool value) {
+              setState(() {
+                _incluirSom = value;
+                _calcularOrcamento();
+              });
+            },
+          ),
+          // Campo para o valor do som, visível apenas se o switch estiver ativado.
+          if (_incluirSom)
+            _buildTextField(
+              'Valor do Som (R\$)',
+              _valorSomController,
+              keyboardType: TextInputType.number,
+            ),
+          _buildTextField(
+            'Valor do Desconto (R\$)',
+            _descontoController,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ),
     );
   }
 
@@ -570,6 +579,12 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           filled: true,
           fillColor: Colors.grey[50],
         ),
+        validator: (value) {
+          if (value!.isEmpty) {
+            return 'Campo obrigatório.';
+          }
+          return null;
+        },
       ),
     );
   }
@@ -618,7 +633,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           ),
           const SizedBox(height: 24),
           _buildInfoRow('Serviço', _servico),
-          _buildInfoRow('Duração do Evento', '$_duracao horas'),
+          _buildInfoRow('Duração do Evento', duracaoText()),
           _buildInfoRow('Local', _local),
           _buildInfoRow('Data', _data),
           const SizedBox(height: 32),
@@ -652,6 +667,13 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ],
       ),
     );
+  }
+
+  String duracaoText() {
+    if (_duracao == 1) {
+      return '$_duracao hora';
+    }
+    return '$_duracao horas';
   }
 
   /// Widget auxiliar para exibir linhas de informação.
@@ -704,7 +726,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           'Valor por hora ($serviceName)',
           _currencyFormat.format(hourlyRate),
         ),
-        _buildDetailRow('Duração', '$duration horas'),
+        _buildDetailRow('Duração', duracaoText()),
         _buildDetailRow(
           'Subtotal ($serviceName)',
           _currencyFormat.format(subtotal),
@@ -738,7 +760,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
                   ],
                 ),
               ),
-              _buildDetailRow('Duração', '$_duracao horas'),
+              _buildDetailRow('Duração', duracaoText()),
               _buildDetailRow('Subtotal', _currencyFormat.format(_subtotalSom)),
             ],
           ),
@@ -758,12 +780,12 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ),
         const SizedBox(height: 8),
         _buildDetailRow(
-          'DJ ($_duracao horas)',
+          'DJ (${duracaoText()})',
           _currencyFormat.format(_subtotalDJ),
         ),
         if (_incluirSom)
           _buildDetailRow(
-            'Som ($_duracao horas)',
+            'Som (${duracaoText()})',
             _currencyFormat.format(_subtotalSom),
           ),
         const SizedBox(height: 16),
@@ -786,12 +808,14 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Valor Total com desconto:',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+              Flexible(
+                child: const Text(
+                  'Valor Total com desconto:',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
               Text(
@@ -816,7 +840,9 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('$label:', style: const TextStyle(fontSize: 14)),
+          Flexible(
+            child: Text('$label:', style: const TextStyle(fontSize: 14)),
+          ),
           Text(
             value,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
